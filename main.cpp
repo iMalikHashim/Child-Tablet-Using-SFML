@@ -14,7 +14,7 @@ sf::ConvexShape cursor;
 sf::Font font;
 sf::Text commandText;
 sf::Text inputText;
-string inputString = "";
+char inputString[256] = {0};  // Using char array instead of std::string
 float cursorAngle = 0.0f;  // in degrees
 bool penDown = true;
 sf::Color penColor = sf::Color::Black;
@@ -23,36 +23,45 @@ vector<sf::Vertex> lines;
 // Function declarations
 void moveCursor(char* command);
 void turnCursor(char* command, bool rightTurn);
-
+void executeCommand(const char* cmd);
 void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
     lines.push_back(sf::Vertex(from, penColor));
     lines.push_back(sf::Vertex(to, penColor));
 }
 
 
-void repeatCommand(int times, const vector<string>& commands) {
-    for (int i = 0; i < times; ++i) {
-        for (const auto& cmd : commands) {
-            executeCommand(cmd); // Assumes executeCommand can handle a string command
-        }
-    }
-}
-
-void setPenState(bool down) {
-    penDown = down;
-}
-
 
 void changePenColor(const string& colorName) {
     map<string, sf::Color> colorMap = {
         {"BLACK", sf::Color::Black}, {"WHITE", sf::Color::White},
-        // ... other colors ...
+        {"RED", sf::Color::Red}, {"GREEN", sf::Color::Green},
+        {"BLUE", sf::Color::Blue}, {"YELLOW", sf::Color::Yellow},
+        {"MAGENTA", sf::Color::Magenta}, {"CYAN", sf::Color::Cyan},
+        {"ORANGE", sf::Color(255, 165, 0)}, {"PURPLE", sf::Color(128, 0, 128)}
+        // You can add more colors here
     };
     auto it = colorMap.find(colorName);
     if (it != colorMap.end()) {
         penColor = it->second;
     }
 }
+
+
+
+
+void repeatCommand(int times, const vector<string>& commands) {
+    for (int i = 0; i < times; ++i) {
+        for (const auto& cmd : commands) {
+            executeCommand(cmd.c_str()); // Pass the command as a C-string
+        }
+    }
+}
+
+
+void setPenState(bool down) {
+    penDown = down;
+}
+
 
 void changePenWidth(int width) {
     penWidth = width;
@@ -124,23 +133,35 @@ void initializeCursorAndText() {
     inputText.setPosition(10, 10);
 }
 
-// Function to execute a command
-void executeCommand(const string& command) {
-    char cmd[100];
-    strncpy(cmd, command.c_str(), sizeof(cmd));
-    cmd[sizeof(cmd) - 1] = 0;
+// ... [Previous code including global variables and function declarations] ...
 
+void executeCommand(const char* cmd) {
     if (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "forward", 7) == 0) {
-        moveCursor(cmd);
+        moveCursor(const_cast<char*>(cmd));
     } else if (strncmp(cmd, "bk", 2) == 0 || strncmp(cmd, "backward", 8) == 0) {
-        moveCursor(cmd);
+        moveCursor(const_cast<char*>(cmd));
     } else if (strncmp(cmd, "rt", 2) == 0) {
-        turnCursor(cmd, true);
+        turnCursor(const_cast<char*>(cmd), true);
     } else if (strncmp(cmd, "lt", 2) == 0) {
-        turnCursor(cmd, false);
+        turnCursor(const_cast<char*>(cmd), false);
+    } else if (strncmp(cmd, "pu", 2) == 0) {
+        setPenState(false); // Pen up
+    } else if (strncmp(cmd, "pd", 2) == 0) {
+        setPenState(true); // Pen down
+    } else if (strncmp(cmd, "color", 5) == 0) {
+        string colorName = cmd + 6; // Extract the color name
+        changePenColor(colorName);
+    } else if (strncmp(cmd, "width", 5) == 0) {
+        int width = atoi(cmd + 6); // Extract the width value
+        changePenWidth(width);
+    } else if (strncmp(cmd, "cs", 2) == 0) {
+        clearScreen();
     }
-    // Add more commands here
+    // Add more command handling here
 }
+
+
+    // Add more command handling here
 
 int main() {
     initializeCursorAndText();
@@ -151,15 +172,19 @@ int main() {
             if (event.type == sf::Event::Closed) {
                 window.close();
             } else if (event.type == sf::Event::TextEntered) {
-                if (event.text.unicode == '\b' && !inputString.empty()) {
-                    inputString.pop_back(); // Handle backspace
+                if (event.text.unicode == '\b' && strlen(inputString) > 0) {
+                    inputString[strlen(inputString) - 1] = '\0'; // Handle backspace
                 } else if (event.text.unicode == '\r') {
                     executeCommand(inputString); // Execute command on Enter
-                    inputString.clear(); // Clear the input string
+                    memset(inputString, 0, sizeof(inputString)); // Clear the command array
                 } else if (event.text.unicode >= 32 && event.text.unicode < 128) {
-                    inputString += static_cast<char>(event.text.unicode); // Append character
+                    size_t len = strlen(inputString);
+                    if (len < sizeof(inputString) - 1) {
+                        inputString[len] = static_cast<char>(event.text.unicode);
+                        inputString[len + 1] = '\0'; // Append character and terminate string
+                    }
                 }
-                commandText.setString("Command: " + inputString); // Update command text
+                commandText.setString(inputString); // Update command text
             }
         }
 
