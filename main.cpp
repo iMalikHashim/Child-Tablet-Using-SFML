@@ -5,20 +5,39 @@
 #include <vector>
 #include <sstream>
 #include <iterator>
+#include <fstream>
 
 using namespace std;
 
 // Define necessary global variables
-sf::RenderWindow window(sf::VideoMode(1400, 700), "Tablet", sf::Style::Close);
+sf::RenderWindow window(sf::VideoMode(700, 700), "Tablet", sf::Style::Close);
 sf::ConvexShape cursor;
 sf::Font font;
 sf::Text commandText;
 sf::Text inputText;
+
+const int MAX_COMMANDS = 100;
+const int MAX_COMMAND_LENGTH = 256;
+char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH] = {0};
+int commandCount = 0; // Keep track of the number of commands stored
+
+sf::Text commandTexts[MAX_COMMANDS]; // Store Text objects for displaying commands
+sf::Vector2f commandTextPosition(700, 680); // Starting position for displaying commands
+const int commandTextSpacing = 20; // Ve
+
 char inputString[256] = {0};  // Using char array instead of std::string
 float cursorAngle = 0.0f;  // in degrees
 bool penDown = true;
 sf::Color penColor = sf::Color::Black;
 int penWidth = 500;
+struct Circle {
+    sf::Vector2f position;
+    int radius;
+    sf::Color color;
+    int outlineThickness;
+};
+
+vector <Circle> circles;
 vector<sf::Vertex> lines; 
 // Function declarations
 void moveCursor(char* command);
@@ -30,16 +49,46 @@ void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
 }
 
 
-void drawCircle(int radius) {
-    sf::CircleShape circle(radius);
-    circle.setOrigin(radius, radius); // Set origin to the center of the circle
-    circle.setPosition(cursor.getPosition()); // Position at cursor's location
-    circle.setFillColor(sf::Color::Transparent); // Transparent fill
-    circle.setOutlineColor(penColor); // Use current pen color for outline
-    circle.setOutlineThickness(penWidth); // Use current pen width for outline thickness
 
-    window.draw(circle); // Draw the circle
+void saveCommands(const char* filename) {
+    ofstream file(filename);
+    if (file.is_open()) {
+        for (int i = 0; i < commandCount; ++i) {
+            file << commands[i] << endl;
+        }
+        file.close();
+    } else {
+        cerr << "Unable to open file for saving" << endl;
+    }
 }
+
+void loadCommands(const char* filename) {
+    ifstream file(filename);
+    string line;
+    if (file.is_open()) {
+        while (getline(file, line) && commandCount < MAX_COMMANDS) {
+            strncpy(commands[commandCount], line.c_str(), MAX_COMMAND_LENGTH);
+            commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0'; // Ensure null-termination
+            executeCommand(commands[commandCount]);
+            commandCount++;
+        }
+        file.close();
+    } else {
+        cerr << "Unable to open file for loading" << endl;
+    }
+}
+
+
+void drawCircle(int radius) {
+    Circle circle;
+    circle.position = cursor.getPosition();
+    circle.radius = radius;
+    circle.color = penColor;
+    circle.outlineThickness = penWidth;
+
+    circles.push_back(circle); // Add circle to the vector
+}
+
 
 void changePenColor(const string& colorName) {
     map<string, sf::Color> colorMap = {
@@ -55,7 +104,26 @@ void changePenColor(const string& colorName) {
         penColor = it->second;
     }
 }
+void renderCommandHistory() {
+    const int maxDisplayCommands = 10; // Number of commands to display
+    int startCommand = max(0, commandCount - maxDisplayCommands);
+    float lineHeight = 24; // Assuming line height based on font size
 
+    // Start drawing from the bottom of the screen
+    float startY = window.getSize().y - lineHeight;
+
+    for (int i = startCommand; i < commandCount; ++i) {
+        sf::Text command;
+        command.setFont(font);
+        command.setCharacterSize(24);
+        command.setFillColor(sf::Color::Black);
+        command.setString(commands[i]);
+        command.setPosition(window.getSize().x - command.getLocalBounds().width - 10, startY);
+
+        window.draw(command);
+        startY -= lineHeight; // Move up for the next command
+    }
+}
 void repeatCommand(const char* cmd) {
     // Extract number of times to repeat
     int times = atoi(cmd + 7); // Assuming the format is "repeat <number> [...]"
@@ -164,6 +232,11 @@ void initializeCursorAndText() {
 // ... [Previous code including global variables and function declarations] ...
 
 void executeCommand(const char* cmd) {
+    if (commandCount < MAX_COMMANDS) {
+        strncpy(commands[commandCount], cmd, MAX_COMMAND_LENGTH);
+        commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0'; // Ensure null-termination
+        commandCount++;
+    }
     if (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "forward", 7) == 0) {
         moveCursor(const_cast<char*>(cmd));
     } else if (strncmp(cmd, "bk", 2) == 0 || strncmp(cmd, "backward", 8) == 0) {
@@ -189,12 +262,17 @@ void executeCommand(const char* cmd) {
         drawCircle(radius);
     } else if (strncmp(cmd, "repeat", 6) == 0) {
     repeatCommand(cmd);
+
+    if (strncmp(cmd, "save", 4) == 0) {
+        saveCommands(cmd + 5); // Assuming the format is "save <filename>"
+    } else if (strncmp(cmd, "load", 4) == 0) {
+        loadCommands(cmd + 5); // Assuming the format is "load <filename>"
+    } 
 }
     // Add more command handling here
 }
 
 
-    // Add more command handling here
 
 int main() {
     initializeCursorAndText();
@@ -225,19 +303,29 @@ int main() {
 
         // Draw all lines
         if (!lines.empty()) {
-        window.draw(&lines[0], lines.size(), sf::Lines);
+            window.draw(&lines[0], lines.size(), sf::Lines);
+        }
+
+        // Draw all circles
+        for (const auto& circle : circles) {
+            sf::CircleShape shape(circle.radius);
+            shape.setOrigin(circle.radius, circle.radius);
+            shape.setPosition(circle.position);
+            shape.setFillColor(sf::Color::Transparent);
+            shape.setOutlineColor(circle.color);
+            shape.setOutlineThickness(circle.outlineThickness);
+
+            window.draw(shape);
+        }
+
+        // Draw the cursor, command text, and input text
+        window.draw(cursor);
+        window.draw(commandText);
+        window.draw(inputText);
+        renderCommandHistory();
+
+        window.display();
     }
-
-    // Draw the cursor, command text, and input text
-    window.draw(cursor);
-    window.draw(commandText);
-    window.draw(inputText);
-
-    // Draw additional shapes (like circles) if needed
-    // This can be implemented based on how you manage shapes
-
-    window.display();
-}
 
     return 0;
 }
