@@ -18,7 +18,7 @@ char inputString[256] = {0};  // Using char array instead of std::string
 float cursorAngle = 0.0f;  // in degrees
 bool penDown = true;
 sf::Color penColor = sf::Color::Black;
-int penWidth = 2;
+int penWidth = 500;
 vector<sf::Vertex> lines; 
 // Function declarations
 void moveCursor(char* command);
@@ -30,6 +30,16 @@ void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
 }
 
 
+void drawCircle(int radius) {
+    sf::CircleShape circle(radius);
+    circle.setOrigin(radius, radius); // Set origin to the center of the circle
+    circle.setPosition(cursor.getPosition()); // Position at cursor's location
+    circle.setFillColor(sf::Color::Transparent); // Transparent fill
+    circle.setOutlineColor(penColor); // Use current pen color for outline
+    circle.setOutlineThickness(penWidth); // Use current pen width for outline thickness
+
+    window.draw(circle); // Draw the circle
+}
 
 void changePenColor(const string& colorName) {
     map<string, sf::Color> colorMap = {
@@ -46,16 +56,34 @@ void changePenColor(const string& colorName) {
     }
 }
 
+void repeatCommand(const char* cmd) {
+    // Extract number of times to repeat
+    int times = atoi(cmd + 7); // Assuming the format is "repeat <number> [...]"
+    
+    // Find the starting and ending brackets
+    const char* start = strchr(cmd, '[');
+    const char* end = strrchr(cmd, ']');
+    
+    if (!start || !end || start > end) {
+        cerr << "Invalid repeat command format." << endl;
+        return;
+    }
 
+    // Extract the commands within the brackets
+    string commands = string(start + 1, end);
+    
+    // Split the commands into individual commands
+    istringstream iss(commands);
+    vector<string> commandList((istream_iterator<string>(iss)), istream_iterator<string>());
 
-
-void repeatCommand(int times, const vector<string>& commands) {
+    // Repeat the commands
     for (int i = 0; i < times; ++i) {
-        for (const auto& cmd : commands) {
-            executeCommand(cmd.c_str()); // Pass the command as a C-string
+        for (const auto& singleCmd : commandList) {
+            executeCommand(singleCmd.c_str());
         }
     }
 }
+
 
 
 void setPenState(bool down) {
@@ -156,7 +184,12 @@ void executeCommand(const char* cmd) {
         changePenWidth(width);
     } else if (strncmp(cmd, "cs", 2) == 0) {
         clearScreen();
-    }
+    } else if (strncmp(cmd, "circle", 6) == 0) {
+        int radius = atoi(cmd + 7); // Extract the radius value
+        drawCircle(radius);
+    } else if (strncmp(cmd, "repeat", 6) == 0) {
+    repeatCommand(cmd);
+}
     // Add more command handling here
 }
 
@@ -192,15 +225,19 @@ int main() {
 
         // Draw all lines
         if (!lines.empty()) {
-            window.draw(&lines[0], lines.size(), sf::Lines);
-        }
-
-        window.draw(cursor);          // Draw the cursor
-        window.draw(commandText);     // Draw the command text
-        window.draw(inputText);       // Draw the input text
-
-        window.display();
+        window.draw(&lines[0], lines.size(), sf::Lines);
     }
+
+    // Draw the cursor, command text, and input text
+    window.draw(cursor);
+    window.draw(commandText);
+    window.draw(inputText);
+
+    // Draw additional shapes (like circles) if needed
+    // This can be implemented based on how you manage shapes
+
+    window.display();
+}
 
     return 0;
 }
