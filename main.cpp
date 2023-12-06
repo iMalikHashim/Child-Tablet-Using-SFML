@@ -86,17 +86,43 @@ void drawCircle(int radius) {
     circles.push_back(circle);
 }
 
+// void changePenColor(const string& colorName) {
+//     map<string, sf::Color> colorMap = {
+//         {"BLACK", sf::Color::Black}, {"WHITE", sf::Color::White},
+//         {"RED", sf::Color::Red}, {"GREEN", sf::Color::Green},
+//         {"BLUE", sf::Color::Blue}, {"YELLOW", sf::Color::Yellow},
+//         {"MAGENTA", sf::Color::Magenta}, {"CYAN", sf::Color::Cyan},
+//         {"ORANGE", sf::Color(255, 165, 0)}, {"PURPLE", sf::Color(128, 0, 128)}
+//     };
+//     auto it = colorMap.find(colorName);
+//     if (it != colorMap.end()) {
+//         penColor = it->second;
+//     }
+// }
+
 void changePenColor(const string& colorName) {
-    map<string, sf::Color> colorMap = {
-        {"BLACK", sf::Color::Black}, {"WHITE", sf::Color::White},
-        {"RED", sf::Color::Red}, {"GREEN", sf::Color::Green},
-        {"BLUE", sf::Color::Blue}, {"YELLOW", sf::Color::Yellow},
-        {"MAGENTA", sf::Color::Magenta}, {"CYAN", sf::Color::Cyan},
-        {"ORANGE", sf::Color(255, 165, 0)}, {"PURPLE", sf::Color(128, 0, 128)}
-    };
-    auto it = colorMap.find(colorName);
-    if (it != colorMap.end()) {
-        penColor = it->second;
+    if (colorName == "BLACK") {
+        penColor = sf::Color::Black;
+    } else if (colorName == "WHITE") {
+        penColor = sf::Color::White;
+    } else if (colorName == "RED") {
+        penColor = sf::Color::Red;
+    } else if (colorName == "GREEN") {
+        penColor = sf::Color::Green;
+    } else if (colorName == "BLUE") {
+        penColor = sf::Color::Blue;
+    } else if (colorName == "YELLOW") {
+        penColor = sf::Color::Yellow;
+    } else if (colorName == "MAGENTA") {
+        penColor = sf::Color::Magenta;
+    } else if (colorName == "CYAN") {
+        penColor = sf::Color::Cyan;
+    } else if (colorName == "ORANGE") {
+        penColor = sf::Color(255, 165, 0);
+    } else if (colorName == "PURPLE") {
+        penColor = sf::Color(128, 0, 128);
+    } else {
+        cerr << "Unknown color: " << colorName << endl;
     }
 }
 
@@ -150,6 +176,7 @@ void changePenWidth(int width) {
 
 void clearScreen() {
     lines.clear();
+    circles.clear(); 
 }
 
 
@@ -351,7 +378,7 @@ void executeCommand(const char* cmd) {
     } else if (strncmp(cmd, "cs", 2) == 0) {
         clearScreen();
         cursor.setPosition(window.getSize().x / 2, window.getSize().y / 2);
-        cursorAngle = 90.0f;
+        cursorAngle = 0.0f;
     } else if (strncmp(cmd, "circle", 6) == 0) {
         int radius = atoi(cmd + 7);
         drawCircle(radius);
