@@ -7,9 +7,9 @@
 #include <iterator>
 #include <fstream>
 
+int counter=0;
 using namespace std;
 
-// Define necessary global variables
 sf::RenderWindow window(sf::VideoMode(700, 700), "Tablet", sf::Style::Close);
 sf::ConvexShape cursor;
 sf::Font font;
@@ -19,14 +19,14 @@ sf::Text inputText;
 const int MAX_COMMANDS = 100;
 const int MAX_COMMAND_LENGTH = 256;
 char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH] = {0};
-int commandCount = 0; // Keep track of the number of commands stored
+int commandCount = 0;
 
-sf::Text commandTexts[MAX_COMMANDS]; // Store Text objects for displaying commands
-sf::Vector2f commandTextPosition(700, 680); // Starting position for displaying commands
-const int commandTextSpacing = 20; // Ve
+sf::Text commandTexts[MAX_COMMANDS];
+sf::Vector2f commandTextPosition(700, 680);
+const int commandTextSpacing = 20;
 
-char inputString[256] = {0};  // Using char array instead of std::string
-float cursorAngle = 0.0f;  // in degrees
+char inputString[256] = {0};
+float cursorAngle = 0.0f;
 bool penDown = true;
 sf::Color penColor = sf::Color::Black;
 int penWidth = 500;
@@ -38,8 +38,8 @@ struct Circle {
 };
 
 vector <Circle> circles;
-vector<sf::Vertex> lines; 
-// Function declarations
+vector<sf::Vertex> lines;
+
 void moveCursor(char* command);
 void turnCursor(char* command, bool rightTurn);
 void executeCommand(const char* cmd);
@@ -47,8 +47,6 @@ void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
     lines.push_back(sf::Vertex(from, penColor));
     lines.push_back(sf::Vertex(to, penColor));
 }
-
-
 
 void saveCommands(const char* filename) {
     ofstream file(filename);
@@ -68,7 +66,7 @@ void loadCommands(const char* filename) {
     if (file.is_open()) {
         while (getline(file, line) && commandCount < MAX_COMMANDS) {
             strncpy(commands[commandCount], line.c_str(), MAX_COMMAND_LENGTH);
-            commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0'; // Ensure null-termination
+            commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0';
             executeCommand(commands[commandCount]);
             commandCount++;
         }
@@ -78,7 +76,6 @@ void loadCommands(const char* filename) {
     }
 }
 
-
 void drawCircle(int radius) {
     Circle circle;
     circle.position = cursor.getPosition();
@@ -86,9 +83,8 @@ void drawCircle(int radius) {
     circle.color = penColor;
     circle.outlineThickness = penWidth;
 
-    circles.push_back(circle); // Add circle to the vector
+    circles.push_back(circle);
 }
-
 
 void changePenColor(const string& colorName) {
     map<string, sf::Color> colorMap = {
@@ -97,19 +93,17 @@ void changePenColor(const string& colorName) {
         {"BLUE", sf::Color::Blue}, {"YELLOW", sf::Color::Yellow},
         {"MAGENTA", sf::Color::Magenta}, {"CYAN", sf::Color::Cyan},
         {"ORANGE", sf::Color(255, 165, 0)}, {"PURPLE", sf::Color(128, 0, 128)}
-        // You can add more colors here
     };
     auto it = colorMap.find(colorName);
     if (it != colorMap.end()) {
         penColor = it->second;
     }
 }
-void renderCommandHistory() {
-    const int maxDisplayCommands = 10; // Number of commands to display
-    int startCommand = max(0, commandCount - maxDisplayCommands);
-    float lineHeight = 24; // Assuming line height based on font size
 
-    // Start drawing from the bottom of the screen
+void renderCommandHistory() {
+    const int maxDisplayCommands = 10;
+    int startCommand = max(0, commandCount - maxDisplayCommands);
+    float lineHeight = 24;
     float startY = window.getSize().y - lineHeight;
 
     for (int i = startCommand; i < commandCount; ++i) {
@@ -121,30 +115,24 @@ void renderCommandHistory() {
         command.setPosition(window.getSize().x - command.getLocalBounds().width - 10, startY);
 
         window.draw(command);
-        startY -= lineHeight; // Move up for the next command
+        startY -= lineHeight;
     }
 }
+
 void repeatCommand(const char* cmd) {
-    // Extract number of times to repeat
-    int times = atoi(cmd + 7); // Assuming the format is "repeat <number> [...]"
-    
-    // Find the starting and ending brackets
+    int times = atoi(cmd + 7);
     const char* start = strchr(cmd, '[');
     const char* end = strrchr(cmd, ']');
-    
+
     if (!start || !end || start > end) {
         cerr << "Invalid repeat command format." << endl;
         return;
     }
 
-    // Extract the commands within the brackets
     string commands = string(start + 1, end);
-    
-    // Split the commands into individual commands
     istringstream iss(commands);
     vector<string> commandList((istream_iterator<string>(iss)), istream_iterator<string>());
 
-    // Repeat the commands
     for (int i = 0; i < times; ++i) {
         for (const auto& singleCmd : commandList) {
             executeCommand(singleCmd.c_str());
@@ -152,37 +140,34 @@ void repeatCommand(const char* cmd) {
     }
 }
 
-
-
 void setPenState(bool down) {
     penDown = down;
 }
-
 
 void changePenWidth(int width) {
     penWidth = width;
 }
 
-
 void clearScreen() {
-    lines.clear(); // Assuming 'lines' is a vector of sf::Vertex used for drawing
+    lines.clear();
 }
 
 
-// Move cursor forward or backward
 void moveCursor(char* command) {
     int distance = atoi(command + 2);
-    float radianAngle = cursorAngle * 3.14159f / 180.0f;
-    float dx = std::cos(radianAngle) * distance;
-    float dy = std::sin(radianAngle) * distance;
+    
+    float radianAngle = (cursorAngle+90.0f) * 3.14159f / 180.0f;
+    float dx = cos(radianAngle) * distance;
+    float dy = sin(radianAngle) * distance;
 
-    if (command[0] == 'b') { // Move backward
+    if (command[0] == 'b') { // Check for backward command
         dx = -dx;
         dy = -dy;
     }
 
+    
     sf::Vector2f startPosition = cursor.getPosition();
-    sf::Vector2f endPosition(startPosition.x + dx, startPosition.y + dy);
+    sf::Vector2f endPosition(startPosition.x + dx, startPosition.y - dy);
 
     if (penDown) {
         drawLine(startPosition, endPosition);
@@ -191,50 +176,133 @@ void moveCursor(char* command) {
     cursor.setPosition(endPosition);
 }
 
-// Turn cursor right or left
-void turnCursor(char* command, bool rightTurn) {
-    // Extract the angle from the command
-    int angle = atoi(command + 2);
+// void turnCursor(char* command, bool rightTurn) {
+//     int angle = atoi(command + 2);
+//     float cuAngle;
+//     if (angle % 45 != 0 && angle % 30 != 0) {
+//         cerr << "Invalid angle. Please enter an angle that is a multiple of 45 or 30 degrees." << endl;
+//         return; 
+//     }
+//     if (rightTurn) {
+//         cout << "Cursor Angle: " << cursorAngle << endl;
+        
+//         // Check if the angle is a multiple of 30 degrees
+//         if (angle % 30 == 0) {
+//             // Calculate the number of 30-degree steps to turn
+//             int steps = angle / 30;
+            
+//             // Adjust the cursor angle in 30-degree steps
+//             cursorAngle -= steps * 30;
+//         }
+//         // Check if the angle is a multiple of 45 degrees
+//         else if (angle % 45 == 0) {
+//             // Calculate the number of 45-degree steps to turn
+//             int steps = angle / 45;
+            
+//             // Adjust the cursor angle in 45-degree steps
+//             cursorAngle -= steps * 45;
+//         }
+        
+//         cout << "Cursor Angle after deduction: " << cursorAngle << endl;
+        
+//     } else {
+//         // Similar logic for left turns
+//         if (angle % 30 == 0) {
+//             int steps = angle / 30;
+//             cursorAngle += steps * 30;
+//         }
+//         else if (angle % 45 == 0) {
+//             int steps = angle / 45;
+//             cursorAngle += steps * 45;
+//         }
+//     }
+    
+//     while (cursorAngle >= 360.0f) cursorAngle += 360.0f;
+//     while (cursorAngle <= 0.0f) cursorAngle += 360.0f;
+    
+//     if (cursorAngle == 180.0 || cursorAngle == 360.0 || cursorAngle == -45.0) {
+//         cuAngle = cursorAngle;
+//     } else if (cursorAngle == 0) {
+//         cuAngle = 0;
+//     } else {
+//         cuAngle = (cursorAngle + 180.0f);
+//     }
 
-    // Update the cursor angle
-    cursorAngle += rightTurn ? angle : -angle;
-    cursor.setRotation(cursorAngle);
+//     cout << "What is given to setRotation: " << cuAngle << endl;
+//     cursor.setRotation(cuAngle);
+// }
+
+
+
+void turnCursor(char* command, bool rightTurn) {
+    int angle = atoi(command + 2);
+    float cuAngle;
+    if (angle % 45 != 0 && angle % 30 != 0) {
+        cerr << "Invalid angle. Please enter an angle that is a multiple of 45 or 30 degrees." << endl;
+        return; 
+    }
+
+    if (rightTurn) {
+        cout << "CursorAngle before: " << cursorAngle << endl;
+        cursorAngle -= angle;
+        cout << "CursorAngle After: " << cursorAngle << endl;
+    } else {
+        cout << "CursorAngle before: " << cursorAngle << endl;
+        cursorAngle += angle;
+        cout << "CursorAngle After: " << cursorAngle << endl;
+    }
+
+    // Normalize the cursor angle to 0 - 360 range
+    while (cursorAngle >= 360.0f) cursorAngle -= 360.0f;
+    while (cursorAngle < 0.0f) cursorAngle += 360.0f;
+
+    cout << "Normalized: " << cursorAngle << endl;
+
+    if (cursorAngle == 180.0 || cursorAngle == 360.0) {
+        cuAngle = cursorAngle;
+    }else if(fmod(cursorAngle,45.0f) == 0 || fmod(cursorAngle,30.0f) == 0 ){
+        cuAngle=360.0f - cursorAngle;
+    } 
+    else if (cursorAngle == 0) {
+        cuAngle = 0;
+    } else {
+        cuAngle = (cursorAngle + 180.0f);
+    }
+
+    cout << "What is given to setRotation: " << cuAngle << endl;
+    cursor.setRotation(cuAngle);
 }
 
-// Initialize cursor and text objects
 void initializeCursorAndText() {
-    // Setup the cursor as a triangle
     cursor.setPointCount(3);
-    cursor.setPoint(0, sf::Vector2f(0, -10));
-    cursor.setPoint(1, sf::Vector2f(-5, 5));
-    cursor.setPoint(2, sf::Vector2f(5, 5));
+    cursor.setPoint(0, sf::Vector2f(0, -20));
+    cursor.setPoint(1, sf::Vector2f(-10, 10));
+    cursor.setPoint(2, sf::Vector2f(10, 10));
     cursor.setFillColor(sf::Color::Green);
+    
+    
+    sf::Vector2f centroid = (cursor.getPoint(0) + cursor.getPoint(1) + cursor.getPoint(2)) / 3.0f;
+    cursor.setOrigin(centroid);
     cursor.setPosition(window.getSize().x / 2, window.getSize().y / 2);
-
-    // Load a font
-    if (!font.loadFromFile("arial.ttf")) { // Replace with your font file path
+    if (!font.loadFromFile("arial.ttf")) {
         cerr << "Error loading font" << endl;
     }
 
-    // Setup command input text
     commandText.setFont(font);
     commandText.setCharacterSize(24);
     commandText.setFillColor(sf::Color::Black);
     commandText.setPosition(10, window.getSize().y - 40);
 
-    // Setup input display text
     inputText.setFont(font);
     inputText.setCharacterSize(24);
     inputText.setFillColor(sf::Color::Red);
     inputText.setPosition(10, 10);
 }
 
-// ... [Previous code including global variables and function declarations] ...
-
 void executeCommand(const char* cmd) {
     if (commandCount < MAX_COMMANDS) {
         strncpy(commands[commandCount], cmd, MAX_COMMAND_LENGTH);
-        commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0'; // Ensure null-termination
+        commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0';
         commandCount++;
     }
     if (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "forward", 7) == 0) {
@@ -246,33 +314,32 @@ void executeCommand(const char* cmd) {
     } else if (strncmp(cmd, "lt", 2) == 0) {
         turnCursor(const_cast<char*>(cmd), false);
     } else if (strncmp(cmd, "pu", 2) == 0) {
-        setPenState(false); // Pen up
+        setPenState(false);
     } else if (strncmp(cmd, "pd", 2) == 0) {
-        setPenState(true); // Pen down
+        setPenState(true);
     } else if (strncmp(cmd, "color", 5) == 0) {
-        string colorName = cmd + 6; // Extract the color name
+        string colorName = cmd + 6;
         changePenColor(colorName);
     } else if (strncmp(cmd, "width", 5) == 0) {
-        int width = atoi(cmd + 6); // Extract the width value
+        int width = atoi(cmd + 6);
         changePenWidth(width);
     } else if (strncmp(cmd, "cs", 2) == 0) {
         clearScreen();
+        cursor.setPosition(window.getSize().x / 2, window.getSize().y / 2);
+        cursorAngle = 90.0f;
     } else if (strncmp(cmd, "circle", 6) == 0) {
-        int radius = atoi(cmd + 7); // Extract the radius value
+        int radius = atoi(cmd + 7);
         drawCircle(radius);
     } else if (strncmp(cmd, "repeat", 6) == 0) {
-    repeatCommand(cmd);
+        repeatCommand(cmd);
+    }
 
     if (strncmp(cmd, "save", 4) == 0) {
-        saveCommands(cmd + 5); // Assuming the format is "save <filename>"
+        saveCommands(cmd + 5);
     } else if (strncmp(cmd, "load", 4) == 0) {
-        loadCommands(cmd + 5); // Assuming the format is "load <filename>"
-    } 
+        loadCommands(cmd + 5);
+    }
 }
-    // Add more command handling here
-}
-
-
 
 int main() {
     initializeCursorAndText();
@@ -284,29 +351,27 @@ int main() {
                 window.close();
             } else if (event.type == sf::Event::TextEntered) {
                 if (event.text.unicode == '\b' && strlen(inputString) > 0) {
-                    inputString[strlen(inputString) - 1] = '\0'; // Handle backspace
+                    inputString[strlen(inputString) - 1] = '\0';
                 } else if (event.text.unicode == '\r') {
-                    executeCommand(inputString); // Execute command on Enter
-                    memset(inputString, 0, sizeof(inputString)); // Clear the command array
+                    executeCommand(inputString);
+                    memset(inputString, 0, sizeof(inputString));
                 } else if (event.text.unicode >= 32 && event.text.unicode < 128) {
                     size_t len = strlen(inputString);
                     if (len < sizeof(inputString) - 1) {
                         inputString[len] = static_cast<char>(event.text.unicode);
-                        inputString[len + 1] = '\0'; // Append character and terminate string
+                        inputString[len + 1] = '\0';
                     }
                 }
-                commandText.setString(inputString); // Update command text
+                commandText.setString(inputString);
             }
         }
 
         window.clear(sf::Color::White);
 
-        // Draw all lines
         if (!lines.empty()) {
             window.draw(&lines[0], lines.size(), sf::Lines);
         }
 
-        // Draw all circles
         for (const auto& circle : circles) {
             sf::CircleShape shape(circle.radius);
             shape.setOrigin(circle.radius, circle.radius);
@@ -318,7 +383,6 @@ int main() {
             window.draw(shape);
         }
 
-        // Draw the cursor, command text, and input text
         window.draw(cursor);
         window.draw(commandText);
         window.draw(inputText);
