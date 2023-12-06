@@ -20,7 +20,7 @@ const int MAX_COMMANDS = 100;
 const int MAX_COMMAND_LENGTH = 256;
 char commands[MAX_COMMANDS][MAX_COMMAND_LENGTH] = {0};
 int commandCount = 0;
-
+vector<sf::RectangleShape> lines;
 sf::Text commandTexts[MAX_COMMANDS];
 sf::Vector2f commandTextPosition(700, 680);
 const int commandTextSpacing = 20;
@@ -38,15 +38,36 @@ struct Circle {
 };
 
 vector <Circle> circles;
-vector<sf::Vertex> lines;
+// vector<sf::Vertex> lines;
 
-void moveCursor(char* command);
-void turnCursor(char* command, bool rightTurn);
+// void moveCursor(char* command);
+void moveCursor(const char command[]);
+// void turnCursor(char* command, bool rightTurn);
+void turnCursor(const char command[], bool rightTurn);
 void executeCommand(const char* cmd);
+// void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
+//     lines.push_back(sf::Vertex(from, penColor));
+//     lines.push_back(sf::Vertex(to, penColor));
+// }
+
 void drawLine(const sf::Vector2f& from, const sf::Vector2f& to) {
-    lines.push_back(sf::Vertex(from, penColor));
-    lines.push_back(sf::Vertex(to, penColor));
+    sf::RectangleShape line;
+    sf::Vector2f direction = to - from;
+    sf::Vector2f unitDirection = direction / std::sqrt(direction.x * direction.x + direction.y * direction.y);
+    sf::Vector2f normal(-unitDirection.y, unitDirection.x);
+
+    float thickness = static_cast<float>(penWidth);
+    sf::Vector2f size(std::sqrt(direction.x * direction.x + direction.y * direction.y), thickness);
+
+    line.setSize(size);
+    line.setOrigin(0, thickness / 2);
+    line.setPosition(from);
+    line.setRotation(atan2(direction.y, direction.x) * 180 / 3.14159f);
+    line.setFillColor(penColor);
+
+    lines.push_back(line);
 }
+
 
 void saveCommands(const char* filename) {
     ofstream file(filename);
@@ -65,16 +86,28 @@ void loadCommands(const char* filename) {
     string line;
     if (file.is_open()) {
         while (getline(file, line) && commandCount < MAX_COMMANDS) {
+            
+            if (line.rfind("save", 0) == 0 || line.rfind("load", 0) == 0) {
+                cout << "Skipping command: " << line << endl;
+                continue; 
+            }
+
             strncpy(commands[commandCount], line.c_str(), MAX_COMMAND_LENGTH);
             commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0';
+
+            
+            cout << "Executing command: " << commands[commandCount] << endl;
+
             executeCommand(commands[commandCount]);
             commandCount++;
         }
         file.close();
     } else {
-        cerr << "Unable to open file for loading" << endl;
+        cerr << "Unable to open file for loading: " << filename << endl;
     }
 }
+
+
 
 void drawCircle(int radius) {
     Circle circle;
@@ -180,8 +213,10 @@ void clearScreen() {
 }
 
 
-void moveCursor(char* command) {
-    int distance = atoi(command + 2);
+void moveCursor(const char command[]) {
+    char cmd[256];
+    strcpy(cmd, command); // Copy command into a local array
+    int distance = atoi(cmd + 2);
     
     float radianAngle = (cursorAngle+90.0f) * 3.14159f / 180.0f;
     float dx = cos(radianAngle) * distance;
@@ -261,8 +296,11 @@ void moveCursor(char* command) {
 
 
 
-void turnCursor(char* command, bool rightTurn) {
-    int angle = atoi(command + 2);
+void turnCursor(const char command[], bool rightTurn) {
+    char cmd[256];
+    strcpy(cmd, command); // Copy command into a local array
+    int angle = atoi(cmd + 2);
+
     float cuAngle;
     if (angle % 45 != 0 && angle % 30 != 0) {
         cerr << "Invalid angle. Please enter an angle that is a multiple of 45 or 30 degrees." << endl;
@@ -326,7 +364,9 @@ void initializeCursorAndText() {
     inputText.setPosition(10, 10);
 }
 
-void executeCommand(const char* cmd) {
+void executeCommand(const char cmd[]) {
+    char command[256];
+    strcpy(command, cmd); 
     if (commandCount < MAX_COMMANDS) {
         strncpy(commands[commandCount], cmd, MAX_COMMAND_LENGTH);
         commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0';
@@ -357,15 +397,16 @@ void executeCommand(const char* cmd) {
     } else {
 
 
-    if (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "forward", 7) == 0) {
-        moveCursor(const_cast<char*>(cmd));
-    } else if (strncmp(cmd, "bk", 2) == 0 || strncmp(cmd, "backward", 8) == 0) {
-        moveCursor(const_cast<char*>(cmd));
-    } else if (strncmp(cmd, "rt", 2) == 0) {
-        turnCursor(const_cast<char*>(cmd), true);
-    } else if (strncmp(cmd, "lt", 2) == 0) {
-        turnCursor(const_cast<char*>(cmd), false);
-    } else if (strncmp(cmd, "pu", 2) == 0) {
+    if (strncmp(command, "fd", 2) == 0 || strncmp(command, "forward", 7) == 0) {
+        moveCursor(command);
+    } else if (strncmp(command, "bk", 2) == 0 || strncmp(command, "backward", 8) == 0) {
+        moveCursor(command);
+    } else if (strncmp(command, "rt", 2) == 0) {
+        turnCursor(command, true);
+    } else if (strncmp(command, "lt", 2) == 0) {
+        turnCursor(command, false);
+        }
+     else if (strncmp(cmd, "pu", 2) == 0) {
         setPenState(false);
     } else if (strncmp(cmd, "pd", 2) == 0) {
         setPenState(true);
@@ -379,6 +420,7 @@ void executeCommand(const char* cmd) {
         clearScreen();
         cursor.setPosition(window.getSize().x / 2, window.getSize().y / 2);
         cursorAngle = 0.0f;
+        cursor.setRotation(cursorAngle);
     } else if (strncmp(cmd, "circle", 6) == 0) {
         int radius = atoi(cmd + 7);
         drawCircle(radius);
@@ -421,10 +463,12 @@ int main() {
 
         window.clear(sf::Color::White);
 
-        if (!lines.empty()) {
-            window.draw(&lines[0], lines.size(), sf::Lines);
+        // if (!lines.empty()) {
+        //     window.draw(&lines[0], lines.size(), sf::Lines);
+        // }
+        for (const auto& line : lines) {
+            window.draw(line);
         }
-
         for (const auto& circle : circles) {
             sf::CircleShape shape(circle.radius);
             shape.setOrigin(circle.radius, circle.radius);

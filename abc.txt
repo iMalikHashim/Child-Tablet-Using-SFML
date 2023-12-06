@@ -1,0 +1,10 @@
+fd 100
+fd 20
+rt 90
+fd 10
+rt90
+fd 100
+fd 50
+rt 90
+fd 100
+save abc.txt
