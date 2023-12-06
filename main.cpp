@@ -29,7 +29,7 @@ char inputString[256] = {0};
 float cursorAngle = 0.0f;
 bool penDown = true;
 sf::Color penColor = sf::Color::Black;
-int penWidth = 500;
+int penWidth = 5;
 struct Circle {
     sf::Vector2f position;
     int radius;
