@@ -305,6 +305,31 @@ void executeCommand(const char* cmd) {
         commands[commandCount][MAX_COMMAND_LENGTH - 1] = '\0';
         commandCount++;
     }
+
+    bool knownCommand = strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "bk", 2) == 0 ||
+                        strncmp(cmd, "rt", 2) == 0 || strncmp(cmd, "lt", 2) == 0 ||
+                        strncmp(cmd, "pu", 2) == 0 || strncmp(cmd, "pd", 2) == 0 ||
+                        strncmp(cmd, "color", 5) == 0 || strncmp(cmd, "width", 5) == 0 ||
+                        strncmp(cmd, "cs", 2) == 0 || strncmp(cmd, "circle", 6) == 0 ||
+                        strncmp(cmd, "repeat", 6) == 0 || strncmp(cmd, "save", 4) == 0 ||
+                        strncmp(cmd, "load", 4) == 0;
+    
+    // Check for incomplete command (e.g., "fd" without a number)
+    bool incompleteCommand = (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "bk", 2) == 0 ||
+                              strncmp(cmd, "rt", 2) == 0 || strncmp(cmd, "lt", 2) == 0 ||
+                              strncmp(cmd, "color", 5) == 0 || strncmp(cmd, "width", 5) == 0 ||
+                              strncmp(cmd, "circle", 6) == 0 || strncmp(cmd, "repeat", 6) == 0) &&
+                              strlen(cmd) <= 3;  // Adjust this condition based on your command format
+
+    if (incompleteCommand) {
+        inputText.setString("Incomplete command");
+        cerr << "Incomplete command" << endl;
+    } else if (!knownCommand) {
+        inputText.setString("I don't know this command");
+        cerr << "Unknown command" << endl;
+    } else {
+
+
     if (strncmp(cmd, "fd", 2) == 0 || strncmp(cmd, "forward", 7) == 0) {
         moveCursor(const_cast<char*>(cmd));
     } else if (strncmp(cmd, "bk", 2) == 0 || strncmp(cmd, "backward", 8) == 0) {
@@ -339,6 +364,7 @@ void executeCommand(const char* cmd) {
     } else if (strncmp(cmd, "load", 4) == 0) {
         loadCommands(cmd + 5);
     }
+}
 }
 
 int main() {
